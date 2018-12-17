@@ -1,5 +1,7 @@
 <template>
   <div>
+    <label for="query">search</label>
+    <input v-model="query" type="text" id="query">
     <select v-model="selected">
       <option disabled value>Please select one</option>
       <option
@@ -15,6 +17,7 @@
 export default {
   data() {
     return {
+      query: "",
       selected: null,
       clStates: [
         {
@@ -1690,7 +1693,12 @@ export default {
   },
   methods: {
     sendState(state) {
-      this.$emit("picked", state);
+      const search = this.query.split(" ").join("+");
+      const data = {
+        state,
+        search
+      };
+      this.$emit("picked", data);
     }
   }
 };

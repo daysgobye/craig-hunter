@@ -1,8 +1,8 @@
 <template>
   <div>
     <h2 v-for="(item, index) in topTen" :key="index">{{item}}</h2>
-    <!-- <button @click="scrapeTwo(mainurl)">top 10</button>
-    <button @click="scrapweb(altUrl)">scrap the web</button>-->
+    <button @click="scrapeTwo(mainurl)">top 10</button>
+    <button @click="scrapweb(altUrl)">scrap the web</button>
     <slector v-on:picked="buildurl"></slector>
     <div class="imgwrap">
       <div v-for="(item, index) in imags" :key="index">
@@ -32,9 +32,10 @@ export default {
   data() {
     return {
       scrapedData: null,
+      isScraping: false,
       mainurl: "https://www.digitaltrends.com/mobile/best-ipad-cases/",
       altUrl:
-        "https://albuquerque.craigslist.org/d/web-html-info-design/search/web",
+        "https://phoenix.craigslist.org/search/ggg?query=web+design&is_paid=all",
       listings: [],
       listingsSorted: [],
       imags: [],
@@ -44,74 +45,32 @@ export default {
   },
   methods: {
     buildurl(statecl) {
-      const url = `${statecl}d/web-html-info-design/search/web`;
-      this.scrapweb(url);
+      const urlInfo = `${statecl.state}d/web-html-info-design/search/web`;
+      const urlGig = `${statecl.state}search/ggg?query=${
+        statecl.search
+      }&is_paid=all`;
+      console.log(urlGig);
+
+      this.scrapweb(urlInfo);
+      setTimeout(() => {
+        this.scrapweb(urlGig);
+      }, 1000);
     },
     scrapweb(url) {
+      this.isScraping = true;
       $.get(
         `https://api.allorigins.ml/get?method=raw&url=${encodeURIComponent(
           url
         )}&callback=?`,
         response => {
+          this.isScraping = false;
           // console.log(response);
           this.findListing(response);
           // this.getLinks(response);
         }
       );
     },
-    scrapeTwo(url) {
-      $.get(
-        `https://api.allorigins.ml/get?method=raw&url=${encodeURIComponent(
-          url
-        )}&callback=?`,
-        response => {
-          this.scrapedData = response.match(/<h2>[\s|\S]*?<\/h2>/g);
-          this.sortTags(this.scrapedData);
-        }
-      );
-    },
-    sortTags(data) {
-      const links = [];
-      const values = [];
-      const titles = [];
-      data.forEach(link => {
-        links.push(link.match(/<a \b[^>]*>[\s|\S]*?<\/a>/g));
-      });
-      links.flat().forEach(title => {
-        values.push(title.match(/>[\s|\S]*?</g));
-      });
-      values.flat().forEach(title => {
-        titles.push(title.slice(1, -1));
-      });
-      this.topTen = titles;
-    },
 
-    // pushes links from scrape into links array
-    getLinks(data) {
-      this.links.push(
-        data.match(/\s*href\s*=\s*(\"([^"]*\")|'[^']*'|([^'">\s]+))/g)
-      );
-      // this.links.flat(1);
-      this.flatten(this.links, "links");
-      const tempLinks = [];
-      this.links.forEach(element => {
-        let link = element;
-        // link = link.trim();
-        //cut last character
-        link = link.slice(0, -1);
-        //cut first character "href="
-        link = link.substring(7);
-        tempLinks.push(link);
-      });
-
-      this.links = tempLinks;
-      // setTimeout(() => {
-      //   this.newScrape();
-      // }, 1000);
-      setInterval(() => {
-        this.newScrape();
-      }, 10000);
-    },
     // finds all of the listings in there and pushes them into an array
     findListing(data) {
       this.listings.push(data.match(/<p class="result-info">[\s\S]*?<\/p>/gi));
@@ -142,18 +101,6 @@ export default {
     },
     // takes one of the links found from one sites and sends it to the scraper
 
-    newScrape() {
-      let randomLink = this.links[
-        Math.floor(Math.random() * (this.links.length - 2 + 1)) + 2
-      ];
-
-      if (randomLink.slice(0, 3) === "/r/") {
-        const fullLink = `https://www.reddit.com${randomLink}`;
-        randomLink = fullLink;
-      }
-      console.log("random link", randomLink);
-      this.scrapweb(randomLink);
-    },
     flatten(arr, dataEl) {
       const temp = arr;
       if (dataEl === "imags") {
@@ -164,6 +111,21 @@ export default {
         this.listings = temp.flat();
       }
       // arr = temp[0];
+    }
+  },
+  watch: {
+    listingsSorted: function() {
+      this.listingsSorted.forEach(listing => {
+        const dupes = [];
+        let i = 0;
+        while (i < this.listingsSorted.length) {
+          if (listing.title === this.listingsSorted[i].title) {
+            dupes.push(i);
+            console.log(this.listingsSorted[i].title);
+          }
+          console.log(dupes);
+        }
+      });
     }
   },
   components: {
